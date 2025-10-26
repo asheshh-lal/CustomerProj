@@ -8,6 +8,7 @@ import com.example.customerserviceapp.service.CustomerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -46,8 +47,44 @@ public class CustomerServiceImpl implements CustomerService {
         return toResponse(c);
     }
 
-    // ----- helpers -----
+    @Override
+    @Transactional(readOnly = true)
+    public CreateCustomerResponseDTO getByEmail(String email) {
+        var c = repo.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found with email: " + email));
+        return toResponse(c);
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<CreateCustomerResponseDTO> getAll() {
+        return repo.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public CreateCustomerResponseDTO updateByEmail(String email, CreateCustomerRequestDTO req) {
+        var existing = repo.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found with email: " + email));
+
+        // Update fields
+        existing.setFirstName(req.getFirstName());
+        existing.setLastName(req.getLastName());
+        existing.setEmail(req.getEmail());
+
+        var updated = repo.save(existing);
+        return toResponse(updated);
+    }
+
+    @Override
+    public void deleteByEmail(String email) {
+        var c = repo.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found with email: " + email));
+        repo.delete(c);
+    }
+
+    // ----- helpers -----
     private CreateCustomerResponseDTO toResponse(Customer c) {
         return CreateCustomerResponseDTO.builder()
                 .customerId(c.getId().toString())
